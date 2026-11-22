@@ -97,6 +97,9 @@ if [ $KSU_ENABLE -eq 1 ]; then
     echo "KSU is enabled"
     rm -rf KernelSU
     git clone --depth=1 -b builtin https://github.com/SukiSU-Nova/SukiSU-Nova KernelSU
+    if [ ! -f include/linux/static_call.h ]; then
+        sed -i '/#include <linux\/static_call.h>/d' KernelSU/kernel/kernel_includes.h
+    fi
     ln -sfn ../KernelSU/kernel drivers/kernelsu
     grep -q "kernelsu" drivers/Makefile || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> drivers/Makefile
     grep -q 'drivers/kernelsu/Kconfig' drivers/Kconfig || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
