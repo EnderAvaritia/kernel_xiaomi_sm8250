@@ -95,7 +95,11 @@ echo "TARGET_DEVICE: $TARGET_DEVICE"
 
 if [ $KSU_ENABLE -eq 1 ]; then
     echo "KSU is enabled"
-    curl -LSs "https://raw.githubusercontent.com/SukiSU-Nova/SukiSU-Nova/main/kernel/setup.sh" | bash -s builtin
+    rm -rf KernelSU
+    git clone --depth=1 https://github.com/SukiSU-Nova/SukiSU-Nova KernelSU
+    ln -sfn ../KernelSU/kernel drivers/kernelsu
+    grep -q "kernelsu" drivers/Makefile || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> drivers/Makefile
+    grep -q 'drivers/kernelsu/Kconfig' drivers/Kconfig || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
 else
     echo "KSU is disabled"
 fi
