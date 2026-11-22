@@ -16,10 +16,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential curl flex git \
-            g++-multilib gcc-multilib gnupg gperf libelf-dev liblz4-tool \
+            gnupg gperf libelf-dev liblz4-tool \
             libssl-dev libxml2 libxml2-utils lzop rsync schedtool zip unzip \
-            zlib1g-dev python3 gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
-            gcc-arm-linux-gnueabi ccache
+            zlib1g-dev python3 ccache \
+            binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi
 
       - name: Toolchain (AOSP clang r487747c)
         run: |
