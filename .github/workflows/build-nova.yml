@@ -45,7 +45,7 @@ jobs:
 
       - name: Preflight SukiSU-Nova
         run: |
-          git ls-remote --heads https://github.com/SukiSU-Nova/SukiSU-Nova main
+          git ls-remote --heads https://github.com/SukiSU-Nova/SukiSU-Nova builtin
 
       - name: Build
         run: |

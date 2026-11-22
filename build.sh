@@ -96,7 +96,7 @@ echo "TARGET_DEVICE: $TARGET_DEVICE"
 if [ $KSU_ENABLE -eq 1 ]; then
     echo "KSU is enabled"
     rm -rf KernelSU
-    git clone --depth=1 https://github.com/SukiSU-Nova/SukiSU-Nova KernelSU
+    git clone --depth=1 -b builtin https://github.com/SukiSU-Nova/SukiSU-Nova KernelSU
     ln -sfn ../KernelSU/kernel drivers/kernelsu
     grep -q "kernelsu" drivers/Makefile || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> drivers/Makefile
     grep -q 'drivers/kernelsu/Kconfig' drivers/Kconfig || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
@@ -129,15 +129,15 @@ if [ $KSU_ENABLE -eq 1 ]; then
     -e MODULES \
     -e KPROBES \
     -e KSU \
-    -e KSU_MANUAL_SU \
-    -e KPM
+    -d KSU_SUSFS \
+    -d KPM
 else
     scripts/config --file out/.config -d KSU
 fi
 
 yes "" | make $MAKE_ARGS oldconfig
 if [ $KSU_ENABLE -eq 1 ]; then
-    grep -q '^CONFIG_KSU=y' out/.config || { echo "ERROR: CONFIG_KSU not enabled"; grep -E 'CONFIG_(KSU|KPROBES|MODULES|EXT4_FS)' out/.config; exit 1; }
+    grep -q '^CONFIG_KSU=y' out/.config || { echo "ERROR: CONFIG_KSU not enabled"; grep -E 'CONFIG_(KSU|KPROBES|MODULES|KSU_SUSFS|KPM)' out/.config; exit 1; }
 fi
 make $MAKE_ARGS -j$(nproc)
 
@@ -250,8 +250,8 @@ if [ $KSU_ENABLE -eq 1 ]; then
     -e MODULES \
     -e KPROBES \
     -e KSU \
-    -e KSU_MANUAL_SU \
-    -e KPM
+    -d KSU_SUSFS \
+    -d KPM
 else
     scripts/config --file out/.config -d KSU
 fi
@@ -288,7 +288,7 @@ scripts/config --file out/.config \
 
 yes "" | make $MAKE_ARGS oldconfig
 if [ $KSU_ENABLE -eq 1 ]; then
-    grep -q '^CONFIG_KSU=y' out/.config || { echo "ERROR: CONFIG_KSU not enabled"; grep -E 'CONFIG_(KSU|KPROBES|MODULES|EXT4_FS)' out/.config; exit 1; }
+    grep -q '^CONFIG_KSU=y' out/.config || { echo "ERROR: CONFIG_KSU not enabled"; grep -E 'CONFIG_(KSU|KPROBES|MODULES|KSU_SUSFS|KPM)' out/.config; exit 1; }
 fi
 make $MAKE_ARGS -j$(nproc)
 
