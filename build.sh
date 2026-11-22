@@ -97,9 +97,18 @@ if [ $KSU_ENABLE -eq 1 ]; then
     echo "KSU is enabled"
     rm -rf KernelSU
     git clone --depth=1 -b builtin https://github.com/SukiSU-Nova/SukiSU-Nova KernelSU
+    KSU_SRC=KernelSU/kernel
+    # --- SukiSU-Nova 4.19 compatibility patches ---
+    # 1) static_call.h is 5.10+; Nova includes it unconditionally but never uses it
     if [ ! -f include/linux/static_call.h ]; then
-        sed -i '/#include <linux\/static_call.h>/d' KernelSU/kernel/kernel_includes.h
+        sed -i '/#include <linux\/static_call.h>/d' "$KSU_SRC/kernel_includes.h"
     fi
+    # 2) KPM requires 5.10+; upstream guard is wrong (>= 4.4.0)
+    sed -i 's/^#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)$/#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)/' "$KSU_SRC/kernel_compat.h"
+    # 3) KSU_NO_PREINIT is also passed via -D from the Makefile
+    sed -i 's/^#define KSU_NO_PREINIT$/#ifndef KSU_NO_PREINIT\n#define KSU_NO_PREINIT\n#endif/' "$KSU_SRC/preinit/common/preinit.h"
+    # 4) unused on the pre-5.10 SELinux code path
+    sed -i 's/^    struct selinux_policy \*pol, \*old_pol;$/    struct selinux_policy *pol __maybe_unused, *old_pol __maybe_unused;/' "$KSU_SRC/selinux/rules.c"
     ln -sfn ../KernelSU/kernel drivers/kernelsu
     grep -q "kernelsu" drivers/Makefile || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> drivers/Makefile
     grep -q 'drivers/kernelsu/Kconfig' drivers/Kconfig || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
