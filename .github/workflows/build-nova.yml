@@ -7,6 +7,9 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 240
+    permissions:
+      contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -86,3 +89,37 @@ jobs:
           name: elish-nova-kernel
           path: out_art/
           if-no-files-found: error
+
+      - name: Repack boot.img
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          if gh release download boot-base -p mipad5pro_boot.img --dir . --clobber 2>/dev/null; then
+            echo "base boot.img found, repacking"
+            cp out_art/Image Image
+            python3 repack_boot.py
+            ls -l mipad5pro_boot_nova.img
+          else
+            echo "::warning::boot-base release / mipad5pro_boot.img not found; skipping boot.img repack"
+          fi
+
+      - name: Release
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          tag="build-${GITHUB_SHA::8}"
+          files="out_art/*"
+          if [ -f mipad5pro_boot_nova.img ]; then
+            files="$files mipad5pro_boot_nova.img"
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" $files --clobber
+          else
+            gh release create "$tag" $files \
+              --title "elish nova ${GITHUB_SHA::8}" \
+              --prerelease \
+              --notes "Automated build from ${GITHUB_SHA}. Assets: Kernel_MIUI_elish zip, Image, and mipad5pro_boot_nova.img when the boot-base release exists."
+          fi
