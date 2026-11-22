@@ -1,0 +1,67 @@
+name: build-elish-nova
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential curl flex git \
+            g++-multilib gcc-multilib gnupg gperf libelf-dev liblz4-tool \
+            libssl-dev libxml2 libxml2-utils lzop rsync schedtool zip unzip \
+            zlib1g-dev python3 gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabi ccache
+
+      - name: Toolchain (AOSP clang r487747c)
+        run: |
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r487747c \
+            "$HOME/proton-clang/proton-clang-20210522"
+
+      - name: Env check
+        run: |
+          echo "--- build.sh toolchain section (must match cloned path) ---"
+          sed -n '1,40p' build.sh
+          "$HOME/proton-clang/proton-clang-20210522/bin/clang" --version
+          command -v aarch64-linux-gnu-ld
+          command -v arm-linux-gnueabi-ld
+
+      - name: Integrate SukiSU Nova
+        run: |
+          curl -LSs https://raw.githubusercontent.com/SukiSU-Nova/SukiSU-Nova/main/kernel/setup.sh | bash -s builtin
+          echo "--- KSU dir check ---"
+          ls -la KernelSU 2>/dev/null || ls -la drivers/kernelsu 2>/dev/null || ls -la | head -40
+
+      - name: Build
+        run: |
+          export PATH="$HOME/proton-clang/proton-clang-20210522/bin:$PATH"
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          bash build.sh elish ksu miui
+
+      - name: Collect
+        run: |
+          ls -lh *.zip || true
+          mkdir -p out_art
+          cp -v Kernel_MIUI_elish_*.zip out_art/ 2>/dev/null || true
+          for z in out_art/*.zip; do
+            [ -f "$z" ] || continue
+            unzip -o -j "$z" 'kernels/Image' -d out_art/ || true
+          done
+          ls -lh out_art/
+          sha256sum out_art/* 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elish-nova-kernel
+          path: out_art/
+          if-no-files-found: error
