@@ -23,8 +23,17 @@ jobs:
 
       - name: Toolchain (AOSP clang r487747c)
         run: |
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r487747c \
-            "$HOME/proton-clang/proton-clang-20210522"
+          set -e
+          dest="$HOME/proton-clang/proton-clang-20210522"
+          for url in \
+            https://github.com/halogenOS/android_prebuilts_clang_host_linux-x86_clang-r487747c \
+            https://github.com/project-raspberry/prebuilts_clang_host_linux-x86_clang-r487747c ; do
+            echo "trying $url"
+            if git clone --depth=1 "$url" "$dest"; then break; fi
+            rm -rf "$dest"
+          done
+          test -x "$dest/bin/clang"
+          "$dest/bin/clang" --version
 
       - name: Env check
         run: |
